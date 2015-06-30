@@ -20,7 +20,7 @@ function buildColourValueArray(colours, next) {
         }
         async.each(colour.value, function (item, callback) {
             if (_.isArray(colour.value)) {
-                return processColour(item, colour.colour, next);
+                processColour(item, colour.colour, next);
             }
             return callback();
         }, function (err) {
@@ -29,7 +29,7 @@ function buildColourValueArray(colours, next) {
             }
             var colour_name = colour.colour;
             if (parent_colour) {
-                colour_name = [parent_colour, '-', colour.colour].join('');
+                colour_name = [parent_colour, colour.colour].join('-');
             }
             if (!_.isArray(colour.value)) {
                 return next(null, colour_name, colour.value);
