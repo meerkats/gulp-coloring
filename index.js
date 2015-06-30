@@ -1,9 +1,14 @@
 var _ = require('underscore');
 var async = require('async');
 var fs = require('fs');
+var gutil = require('gulp-util');
 var path = require('path');
 var through = require('through2');
 
+var PluginError = gutil.PluginError;
+
+// consts
+const PLUGIN_NAME = 'gulp-prefixer';
 /**
  * Builds a collection or colours from a JSON object of Colour : Value
  */
@@ -84,6 +89,10 @@ module.exports = function (target_colour, replacement_colours, output_directory)
             }
             async.each(results, function (item, callback) {
                 var write_file_path = path.join(write_path, parsedFilePath.basename + '-' + item.colour + parsedFilePath.extname);
+                if (file.isStream()) {
+                    this.emit('error', new PluginError(PLUGIN_NAME, 'Stream not supported!'));
+                    return callback();
+                }
                 if (file.isBuffer()) {
                     fs.writeFile(write_file_path, replaceBuffered(file, target_colour, item.value), callback);
                 }
