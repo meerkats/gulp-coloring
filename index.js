@@ -8,7 +8,7 @@ var through = require('through2');
 var PluginError = gutil.PluginError;
 
 // consts
-const PLUGIN_NAME = 'gulp-prefixer';
+const PLUGIN_NAME = 'gulp-svgrollout';
 /**
  * Builds a collection or colours from a JSON object of Colour : Value
  */
@@ -25,7 +25,7 @@ function buildColourValueArray(colours, next) {
             return callback();
         }, function (err) {
             if (err) {
-                next(err);
+                next(new PluginError(PLUGIN_NAME, err));
             }
             var colour_name = colour.colour;
             if (parent_colour) {
