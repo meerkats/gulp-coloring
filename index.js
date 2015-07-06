@@ -34,7 +34,7 @@ function processColour(colour, parent_name, next) {
     }
 
     if (_.isArray(colour.value)) {
-        colour.value.forEach( function (item, index, array) {
+        return colour.value.forEach( function (item, index, array) {
             return processColour(item, namingConvention(parent_name, colour.colour), next);
         });
     }
