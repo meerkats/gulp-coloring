@@ -28,9 +28,9 @@ module.exports.namingConvention = namingConvention = function (parent_name, chil
  * @param {function} Callback for when this method is complete
  */
 function processColour(colour, parent_name, next) {
-    if (_.isFunction(parent_colour)) {
-        next = parent_colour;
-        parent_colour = null;
+    if (_.isFunction(parent_name)) {
+        next = parent_name;
+        parent_name = null;
     }
 
     if (_.isArray(colour.value)) {
@@ -38,7 +38,7 @@ function processColour(colour, parent_name, next) {
             return processColour(item, namingConvention(parent_name, colour.colour), next);
         });
     }
-    return next(name, colour.value);
+    return next(null, namingConvention(parent_name, colour.colour), colour.value);
 }
 
 /**
@@ -96,7 +96,7 @@ module.exports = function (target_colour, replacement_colours, output_directory)
     return through.obj(function (file, enc, callback) {
         buildColourValueArray(replacement_colours, function (err, colours) {
             var parsedFilePath = parsePath(file.relative);
-            var write_path = path.join(__dirname, output_directory, parsedFilePath.dirname);
+            var write_path = path.join(output_directory, parsedFilePath.dirname);
             if(!fs.existsSync(write_path)) {
                 fs.mkdirSync(write_path);
             }
@@ -112,4 +112,4 @@ module.exports = function (target_colour, replacement_colours, output_directory)
             }, callback);
         });
     });
-});
+};
