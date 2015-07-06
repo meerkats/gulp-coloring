@@ -9,50 +9,63 @@ var PluginError = gutil.PluginError;
 
 // consts
 const PLUGIN_NAME = 'gulp-svgrollout';
+
 /**
- * Builds a collection or colours from a JSON object of Colour : Value
+ * Determines if this object is a colour, or if it contains a collection of
+ * children colours.
+ * @param {string} Parent colours name, null if there is no parent.
+ * @param {string} The current colours name
  */
-function buildColourValueArray(colours, next) {
-    function processColour(colour, parent_colour, next) {
-        if (_.isFunction(parent_colour)) {
-            next = parent_colour;
-            parent_colour = null;
-        }
-        async.each(colour.value, function (item, callback) {
-            if (_.isArray(colour.value)) {
-                processColour(item, colour.colour, next);
-            }
-            return callback();
-        }, function (err) {
-            if (err) {
-                next(new PluginError(PLUGIN_NAME, err));
-            }
-            var colour_name = colour.colour;
-            if (parent_colour) {
-                colour_name = [parent_colour, colour.colour].join('-');
-            }
-            if (!_.isArray(colour.value)) {
-                return next(null, colour_name, colour.value);
-            };
-        });
+module.exports.namingConvention = namingConvention = function (parent_name, child_name) {
+    return parent_name ? [parent_name, child_name].join('-') : child_name;
+}
+
+/**
+ * Determines if this object is a colour, or if it contains a collection of
+ * children colours.
+ * @param {Object} Colour : Value object
+ * @param {string} The name of the parent colour (null if there is no parent)
+ * @param {function} Callback for when this method is complete
+ */
+function processColour(colour, parent_name, next) {
+    if (_.isFunction(parent_colour)) {
+        next = parent_colour;
+        parent_colour = null;
     }
 
-    return async.reduce(colours, [], function (colour_list, item, callback) {
-        processColour(item, function (err, colour_name, colour_value) {
+    if (_.isArray(colour.value)) {
+        colour.value.forEach( function (item, index, array) {
+            return processColour(item, namingConvention(parent_name, colour.colour), next);
+        });
+    }
+    else {
+        return next(name, colour.value);
+    }
+}
+
+/**
+ * Builds a collection or colours from a JSON object of Colour : Hex
+ * @param {JSON} JSON representation of colour name/hex values
+ * @param {function} Callback for when this method is complete
+ */
+function buildColourValueArray(colours, next) {
+    return async.reduce(colours, [], function (colours, item, callback) {
+        processColour(item, function (err, colour, hex) {
             if (err) {
                 callback(err);
             }
-            colour_list.push({
-                colour: colour_name,
-                value: colour_value
+            colours.push({
+                name: colour,
+                hex: hex
             });
         });
-        callback(null, colour_list);
+        callback(null, colours);
     }, next);
 }
 
 /**
  * Helper method that breaks apart a file path into more usable components.
+ * @param {Object} Files relative path
  */
 function parsePath(file_path) {
     var extname = path.extname(file_path);
@@ -65,6 +78,8 @@ function parsePath(file_path) {
 
 /**
  * Replace the target_colour with replacement_colour in the buffer chunk
+ * @param {string} Hex value of the colour to replace
+ * @param {string} Hex value of the colour you want to replace with
  */
 function replaceBuffered(file, target_colour, replacement_colour) {
     var chunks = String(file.contents).split(target_colour);
@@ -81,23 +96,22 @@ function replaceBuffered(file, target_colour, replacement_colour) {
  */
 module.exports = function (target_colour, replacement_colours, output_directory) {
     return through.obj(function (file, enc, callback) {
-        buildColourValueArray(replacement_colours, function (err, results) {
+        buildColourValueArray(replacement_colours, function (err, colours) {
             var parsedFilePath = parsePath(file.relative);
             var write_path = path.join(__dirname, output_directory, parsedFilePath.dirname);
             if(!fs.existsSync(write_path)) {
                 fs.mkdirSync(write_path);
             }
-            async.each(results, function (item, callback) {
-                var write_file_path = path.join(write_path, parsedFilePath.basename + '-' + item.colour + parsedFilePath.extname);
+            async.each(colours, function (colour, callback) {
+                var write_file_path = path.join(write_path, parsedFilePath.basename + '-' + colour.name + parsedFilePath.extname);
                 if (file.isStream()) {
                     this.emit('error', new PluginError(PLUGIN_NAME, 'Stream not supported!'));
                     return callback();
                 }
                 if (file.isBuffer()) {
-                    fs.writeFile(write_file_path, replaceBuffered(file, target_colour, item.value), callback);
+                    fs.writeFile(write_file_path, replaceBuffered(file, target_colour, colour.hex), callback);
                 }
             }, callback);
         });
     });
 });
-

@@ -7,7 +7,7 @@
     "type": "git",
     "url": "git@github.com:meerkats/gulp-svgrollout.git"
   },
-  "author": "This repo is created and maintained by MEERKATS in SUBIACO, WESTERN AUSTRALIA.",
+  "author": "Meerkats <develop@meerkats.com.au>",
   "engines": {
     "node": ">=0.10.22"
   },
