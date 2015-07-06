@@ -38,9 +38,7 @@ function processColour(colour, parent_name, next) {
             return processColour(item, namingConvention(parent_name, colour.colour), next);
         });
     }
-    else {
-        return next(name, colour.value);
-    }
+    return next(name, colour.value);
 }
 
 /**
