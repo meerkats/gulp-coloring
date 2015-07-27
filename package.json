@@ -1,11 +1,11 @@
 {
-  "name": "gulp-svgrollout",
+  "name": "gulp-coloring",
   "version": "1.0.0",
-  "description": "Rollout multiple single color SVG icons in multiple colors.",
+  "description": "Color in an SVG.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git@github.com:meerkats/gulp-svgrollout.git"
+    "url": "git@github.com:meerkats/gulp-coloring.git"
   },
   "author": "Meerkats <develop@meerkats.com.au>",
   "engines": {
@@ -17,7 +17,7 @@
   "keywords": [
     "gulpplugin",
     "svg",
-    "svgrollout"
+    "coloring"
   ],
   "dependencies": {
     "async": "^1.2.1",

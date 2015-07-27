@@ -8,56 +8,56 @@ var through = require('through2');
 var PluginError = gutil.PluginError;
 
 // consts
-const PLUGIN_NAME = 'gulp-svgrollout';
+const PLUGIN_NAME = 'gulp-coloring';
 
 /**
- * Determines if this object is a colour, or if it contains a collection of
- * children colours.
- * @param {string} Parent colours name, null if there is no parent.
- * @param {string} The current colours name
+ * Determines if this object is a color, or if it contains a collection of
+ * children colors.
+ * @param {string} Parent colors name, null if there is no parent.
+ * @param {string} The current colors name
  */
 module.exports.namingConvention = namingConvention = function (parent_name, child_name) {
     return parent_name ? [parent_name, child_name].join('-') : child_name;
-}
+};
 
 /**
- * Determines if this object is a colour, or if it contains a collection of
- * children colours.
- * @param {Object} Colour : Value object
- * @param {string} The name of the parent colour (null if there is no parent)
+ * Determines if this object is a color, or if it contains a collection of
+ * children colors.
+ * @param {Object} Color : Value object
+ * @param {string} The name of the parent color (null if there is no parent)
  * @param {function} Callback for when this method is complete
  */
-function processColour(colour, parent_name, next) {
+function processColor(color, parent_name, next) {
     if (_.isFunction(parent_name)) {
         next = parent_name;
         parent_name = null;
     }
 
-    if (_.isArray(colour.value)) {
-        return colour.value.forEach( function (item, index, array) {
-            return processColour(item, namingConvention(parent_name, colour.colour), next);
+    if (_.isArray(color.value)) {
+        return color.value.forEach( function (item, index, array) {
+            return processColor(item, namingConvention(parent_name, color.color), next);
         });
     }
-    return next(null, namingConvention(parent_name, colour.colour), colour.value);
+    return next(null, namingConvention(parent_name, color.color), color.value);
 }
 
 /**
- * Builds a collection or colours from a JSON object of Colour : Hex
- * @param {JSON} JSON representation of colour name/hex values
+ * Builds a collection or colors from a JSON object of Color : Hex
+ * @param {JSON} JSON representation of color name/hex values
  * @param {function} Callback for when this method is complete
  */
-function buildColourValueArray(colours, next) {
-    return async.reduce(colours, [], function (colours, item, callback) {
-        processColour(item, function (err, colour, hex) {
+function buildColorValueArray(colors, next) {
+    return async.reduce(colors, [], function (colors, item, callback) {
+        processColor(item, function (err, color, hex) {
             if (err) {
                 callback(err);
             }
-            colours.push({
-                name: colour,
+            colors.push({
+                name: color,
                 hex: hex
             });
         });
-        callback(null, colours);
+        callback(null, colors);
     }, next);
 }
 
@@ -75,39 +75,39 @@ function parsePath(file_path) {
 }
 
 /**
- * Replace the target_colour with replacement_colour in the buffer chunk
- * @param {string} Hex value of the colour to replace
- * @param {string} Hex value of the colour you want to replace with
+ * Replace the target_color with replacement_color in the buffer chunk
+ * @param {string} Hex value of the color to replace
+ * @param {string} Hex value of the color you want to replace with
  */
-function replaceBuffered(file, target_colour, replacement_colour) {
-    var chunks = String(file.contents).split(target_colour);
-    var result = chunks.join(replacement_colour);
+function replaceBuffered(file, target_color, replacement_color) {
+    var chunks = String(file.contents).split(target_color);
+    var result = chunks.join(replacement_color);
     return new Buffer(result);
 }
 
 /**
- * Creates a new file for each of the repleacement colours,
- * replacing the target colour with the replacement colour in the svg.
- * @param {string} Colour you want to replace.
- * @param {Array} Colours that you want to replace the target with {colour: colour_name, value: colour_value}.
+ * Creates a new file for each of the repleacement colors,
+ * replacing the target color with the replacement color in the svg.
+ * @param {string} Color you want to replace.
+ * @param {Array} Colors that you want to replace the target with {color: color_name, value: color_value}.
  * @param {string} The location where the files are to be written to.
  */
-module.exports = function (target_colour, replacement_colours, output_directory) {
+module.exports = function (target_color, replacement_colors, output_directory) {
     return through.obj(function (file, enc, callback) {
-        buildColourValueArray(replacement_colours, function (err, colours) {
+        buildColorValueArray(replacement_colors, function (err, colors) {
             var parsedFilePath = parsePath(file.relative);
             var write_path = path.join(output_directory, parsedFilePath.dirname);
             if(!fs.existsSync(write_path)) {
                 fs.mkdirSync(write_path);
             }
-            async.each(colours, function (colour, callback) {
-                var write_file_path = path.join(write_path, parsedFilePath.basename + '-' + colour.name + parsedFilePath.extname);
+            async.each(colors, function (color, callback) {
+                var write_file_path = path.join(write_path, parsedFilePath.basename + '-' + color.name + parsedFilePath.extname);
                 if (file.isStream()) {
                     this.emit('error', new PluginError(PLUGIN_NAME, 'Stream not supported!'));
                     return callback();
                 }
                 if (file.isBuffer()) {
-                    fs.writeFile(write_file_path, replaceBuffered(file, target_colour, colour.hex), callback);
+                    fs.writeFile(write_file_path, replaceBuffered(file, target_color, color.hex), callback);
                 }
             }, callback);
         });
