@@ -10,14 +10,20 @@ var PluginError = gutil.PluginError;
 // consts
 const PLUGIN_NAME = 'gulp-coloring';
 
+var Color = function (name, hex, parent) {
+    this.name = Color.getName(name, parent);
+    this.hex = hex;
+    return this;
+};
+
 /**
  * Determines if this object is a color, or if it contains a collection of
  * children colors.
  * @param {string} Parent colors name, null if there is no parent.
  * @param {string} The current colors name
  */
-module.exports.namingConvention = namingConvention = function (parent_name, child_name) {
-    return parent_name ? [parent_name, child_name].join('-') : child_name;
+Color.getName = function (name, parent) {
+    return parent ? [parent, name].join('-') : name;
 };
 
 /**
@@ -27,18 +33,19 @@ module.exports.namingConvention = namingConvention = function (parent_name, chil
  * @param {string} The name of the parent color (null if there is no parent)
  * @param {function} Callback for when this method is complete
  */
-function processColor(color, parent_name, next) {
+function processColorFamily(color, parent_name, next) {
     if (_.isFunction(parent_name)) {
         next = parent_name;
         parent_name = null;
     }
-
+    // map each child color into a full color
     if (_.isArray(color.value)) {
-        return color.value.forEach( function (item, index, array) {
-            return processColor(item, namingConvention(parent_name, color.color), next);
-        });
+        return next(null, color.value.map(function (child) {
+            return new Color(child.name, child.value, color.name);
+        }));
     }
-    return next(null, namingConvention(parent_name, color.color), color.value);
+    // return a single color
+    return next(null, [new Color(color.name, color.value)]);
 }
 
 /**
@@ -46,18 +53,14 @@ function processColor(color, parent_name, next) {
  * @param {JSON} JSON representation of color name/hex values
  * @param {function} Callback for when this method is complete
  */
-function buildColorValueArray(colors, next) {
-    return async.reduce(colors, [], function (colors, item, callback) {
-        processColor(item, function (err, color, hex) {
+function buildColorValueArray(raw_colors, next) {
+    return async.reduce(raw_colors, [], function (colors, color, callback) {
+        processColorFamily(color, function (err, family_colors) {
             if (err) {
-                callback(err);
+                return callback(err);
             }
-            colors.push({
-                name: color,
-                hex: hex
-            });
+            callback(null, colors.concat(family_colors));
         });
-        callback(null, colors);
     }, next);
 }
 
@@ -95,9 +98,12 @@ function replaceBuffered(file, target_color, replacement_color) {
 module.exports = function (target_color, replacement_colors, output_directory) {
     return through.obj(function (file, enc, callback) {
         buildColorValueArray(replacement_colors, function (err, colors) {
+            if (err) {
+                return this.emit('error', new PluginError(PLUGIN_NAME, err));
+            }
             var parsedFilePath = parsePath(file.relative);
             var write_path = path.join(output_directory, parsedFilePath.dirname);
-            if(!fs.existsSync(write_path)) {
+            if (!fs.existsSync(write_path)) {
                 fs.mkdirSync(write_path);
             }
             async.each(colors, function (color, callback) {
