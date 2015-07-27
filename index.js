@@ -17,27 +17,20 @@ var Color = function (name, hex, parent) {
 };
 
 /**
- * Determines if this object is a color, or if it contains a collection of
- * children colors.
- * @param {string} Parent colors name, null if there is no parent.
- * @param {string} The current colors name
+ * Returns the name of the color which will change if this is a child
+ * @param name {string} The current color's name
+ * @param parent {string} Parent color's name, null if there is no parent.
  */
 Color.getName = function (name, parent) {
     return parent ? [parent, name].join('-') : name;
 };
 
 /**
- * Determines if this object is a color, or if it contains a collection of
- * children colors.
- * @param {Object} Color : Value object
- * @param {string} The name of the parent color (null if there is no parent)
- * @param {function} Callback for when this method is complete
+ * Returns a family of color objects from a parent/child key/value pair
+ * @param color {Object} Color configuration object
+ * @param next {function} Callback for when this method is complete
  */
-function processColorFamily(color, parent_name, next) {
-    if (_.isFunction(parent_name)) {
-        next = parent_name;
-        parent_name = null;
-    }
+function processColorFamily(color, next) {
     // map each child color into a full color
     if (_.isArray(color.value)) {
         return next(null, color.value.map(function (child) {
@@ -49,9 +42,9 @@ function processColorFamily(color, parent_name, next) {
 }
 
 /**
- * Builds a collection or colors from a JSON object of Color : Hex
- * @param {JSON} JSON representation of color name/hex values
- * @param {function} Callback for when this method is complete
+ * Builds a collection or colors from a JSON object of Color objects
+ * @param raw_colors {JSON} JSON representation of color name/hex values
+ * @param next {function} Callback for when this method is complete
  */
 function buildColorValueArray(raw_colors, next) {
     return async.reduce(raw_colors, [], function (colors, color, callback) {
@@ -66,7 +59,7 @@ function buildColorValueArray(raw_colors, next) {
 
 /**
  * Helper method that breaks apart a file path into more usable components.
- * @param {Object} Files relative path
+ * @param file_path {Object} Files relative path
  */
 function parsePath(file_path) {
     var extname = path.extname(file_path);
@@ -79,8 +72,9 @@ function parsePath(file_path) {
 
 /**
  * Replace the target_color with replacement_color in the buffer chunk
- * @param {string} Hex value of the color to replace
- * @param {string} Hex value of the color you want to replace with
+ * @param file {string} Hex value of the color to replace
+ * @param target_color {string} Hex value of the color you want to replace with
+ * @param replacement_color {string} Hex value of the color you want to replace with
  */
 function replaceBuffered(file, target_color, replacement_color) {
     var chunks = String(file.contents).split(target_color);
@@ -91,9 +85,9 @@ function replaceBuffered(file, target_color, replacement_color) {
 /**
  * Creates a new file for each of the repleacement colors,
  * replacing the target color with the replacement color in the svg.
- * @param {string} Color you want to replace.
- * @param {Array} Colors that you want to replace the target with {color: color_name, value: color_value}.
- * @param {string} The location where the files are to be written to.
+ * @param target_color {string} Color you want to replace.
+ * @param replacement_colors {Array} Colors that you want to replace the target with {color: color_name, value: color_value}.
+ * @param output_directory {string} The location where the files are to be written to.
  */
 module.exports = function (target_color, replacement_colors, output_directory) {
     return through.obj(function (file, enc, callback) {
